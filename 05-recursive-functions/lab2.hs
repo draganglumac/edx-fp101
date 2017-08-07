@@ -9,44 +9,58 @@ module Lab2 where
 -- ===================================
 
 toDigits :: Integer -> [Integer]
-toDigits = undefined
+toDigits n =
+  let go x xs
+        | x >= 0 && x < 10 = x : xs
+        | otherwise        = go (x `div` 10) ((x `mod` 10) : xs)
+  in if n >= 0
+     then go n []
+     else error ("The argument has to be a positive Integer or 0: " ++ show n)
 
 -- ===================================
 -- Ex. 1
 -- ===================================
 
 toDigitsRev :: Integer -> [Integer]
-toDigitsRev = undefined
+toDigitsRev = reverse . toDigits
 
 -- ===================================
 -- Ex. 2
 -- ===================================
 
 doubleSecond :: [Integer] -> [Integer]
-doubleSecond = undefined
+doubleSecond []           = []
+doubleSecond [x]          = [x]
+doubleSecond (x : y : xs)  = x : (2 * y) : doubleSecond xs
 
 -- ===================================
 -- Ex. 3
 -- ===================================
 
 sumDigits :: [Integer] -> Integer
-sumDigits = undefined
+sumDigits = sum . individualDigits
+  where individualDigits xs =
+          case xs of
+            [] -> []
+            (y : ys) -> if y > 9
+                        then toDigits y ++ individualDigits ys
+                        else y : individualDigits ys
 
 
--- ===================================
+-- ===== ==============================
 -- Ex. 4
 -- ===================================
 
 isValid :: Integer -> Bool
-isValid = undefined
+isValid n = sumDigits (doubleSecond (toDigitsRev n)) `mod` 10 == 0
 
 
 -- ===================================
 -- Ex. 5
 -- ===================================
-    
+
 numValid :: [Integer] -> Integer
-numValid xs = sum . map (\_ -> 1) $ filter isValid xs
+numValid xs = sum . map (const 1) $ filter isValid xs
 
 
 creditcards :: [Integer]
@@ -171,4 +185,3 @@ creditcards = [ 4716347184862961,
                 377851536227201,
                 345763240913232
               ]
-
