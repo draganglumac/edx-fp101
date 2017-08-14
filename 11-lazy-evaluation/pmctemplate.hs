@@ -4,7 +4,7 @@ import Control.Monad
 
 data Concurrent a = Concurrent ((a -> Action) -> Action)
 
-data Action 
+data Action
     = Atom (IO Action)
     | Fork Action Action
     | Stop
@@ -19,15 +19,16 @@ instance Show Action where
 -- ===================================
 
 action :: Concurrent a -> Action
-action = error "You have to implement action"
-
+-- courteousy of https://gist.github.com/horus/7fe7d8c16b3713e425b6
+action (Concurrent c) = c (const Stop)
 
 -- ===================================
 -- Ex. 1
 -- ===================================
 
 stop :: Concurrent a
-stop = error "You have to implement stop"
+-- courteousy of https://gist.github.com/horus/7fe7d8c16b3713e425b6
+stop = Concurrent (const Stop)
 
 
 -- ===================================
@@ -35,7 +36,8 @@ stop = error "You have to implement stop"
 -- ===================================
 
 atom :: IO a -> Concurrent a
-atom = error "You have to implement atom"
+-- courteousy of https://gist.github.com/horus/7fe7d8c16b3713e425b6
+atom io = Concurrent $ \c -> Atom (io >>= \a -> return (c a))
 
 
 -- ===================================
@@ -43,27 +45,39 @@ atom = error "You have to implement atom"
 -- ===================================
 
 fork :: Concurrent a -> Concurrent ()
-fork = error "You have to implement fork"
+-- courteousy of https://gist.github.com/horus/7fe7d8c16b3713e425b6
+fork a = Concurrent $ \c -> Fork (action a) (c ())
 
 par :: Concurrent a -> Concurrent a -> Concurrent a
-par = error "You have to implement par"
+-- courteousy of https://gist.github.com/horus/7fe7d8c16b3713e425b6
+par (Concurrent a) (Concurrent b) = Concurrent $ \c -> Fork (a c) (b c)
 
 
 -- ===================================
 -- Ex. 4
 -- ===================================
+instance Functor Concurrent where
+  fmap f ca = error "You have to implement Functor :: fmap"
 
+instance Applicative Concurrent where
+  pure x = Concurrent (\c -> c x)
+  (<*>) = error "You have to implement Applicative :: (<*>)"
+
+-- courteousy of https://gist.github.com/horus/7fe7d8c16b3713e425b6
 instance Monad Concurrent where
-    (Concurrent f) >>= g = error "You have to implement >>="
-    return x = Concurrent (\c -> c x)
+  (Concurrent f) >>= g = Concurrent $ \c -> f (\a -> case g a of (Concurrent b) -> b c)
 
 
 -- ===================================
 -- Ex. 5
 -- ===================================
 
+-- courteousy of https://gist.github.com/horus/7fe7d8c16b3713e425b6
 roundRobin :: [Action] -> IO ()
-roundRobin = error "You have to implement roundRobin"
+roundRobin []              = return ()
+roundRobin (Atom io  : xs) = io >>= \act -> roundRobin (xs ++ [act])
+roundRobin (Fork a b : xs) = roundRobin (xs ++ [a,b]) -- put actions at the end of the list
+roundRobin (Stop     : xs) = roundRobin xs
 
 -- ===================================
 -- Tests
@@ -74,7 +88,7 @@ ex0 = par (loop (genRandom 1337)) (loop (genRandom 2600) >> atom (putStrLn ""))
 
 ex1 :: Concurrent ()
 ex1 = do atom (putStr "Haskell")
-         fork (loop $ genRandom 7331) 
+         fork (loop $ genRandom 7331)
          loop $ genRandom 42
          atom (putStrLn "")
 
@@ -94,4 +108,3 @@ genRandom 42   = [71, 71, 17, 14, 16, 91, 18, 71, 58, 75]
 
 loop :: [Int] -> Concurrent ()
 loop xs = mapM_ (atom . putStr . show) xs
-
