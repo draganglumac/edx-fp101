@@ -119,6 +119,43 @@ par (Concurrent x) (Concurrent y) = Concurrent $ \c -> Fork (x c) (y c)
 
 -- ===================================
 -- Ex. 4
+{--
+  To make `Concurrent` an instance of the `Monad` type class, we need to provide
+  implementations of `(>>=)` and `return`. Since the staff is nice, we will give you
+  return for free. But you will have to define `(>>=)` yourself.
+
+  Don't panic! Let the types guide you and everything will be alright. There is really
+  just one way to wire up all the pieces you have on the table to create a result
+  of the required type. Don't try to understand what the code does operationally,
+  trust the types.
+
+  The easiest way to do this is by first developing on a piece of scratch paper (GHCi),
+  a function
+
+  (>>=) :: ((a -> Action) -> Action) -> (a -> ((b -> Action) -> Action)) -> ((b -> Action) -> Action)
+
+  ignoring the Concurrent wrapper. Now you can let the types lead you to the only
+  reasonable implementation. Once you've found this, you can add the boilerplate
+  pattern matching and applications of `Concurrent` that Haskell unfortunately requires.
+  Your implementation without `Concurrent` will look as follows:
+
+  ma >>= f = ... given ma :: ((a -> Action) -> Action) ...
+             ... and f :: (a -> ((b -> Action) -> Action)) ...
+             ... create result of type ((b -> Action) -> Action) ...
+
+  Remember when you return a value of a function type, such as `((b -> Action) -> Action)`,
+  the value you create looks like `\c -> ... expression of type Action ...`
+
+  Similarly, when you need to pass a value of a function type, for example
+  `a -> ((b -> Action) -> Action)`, the value you pass can be an expression of the form:
+
+  `\a -> ... expression of type ((b -> Action) -> Action) ... `
+
+  In the end, the solution only needs two lambda expressions and a couple of function applications.
+
+  While doing all this, you don't need to look at the structure of `Action` at all.
+  In fact, this would work for any type instead of `Action`.
+--}
 -- ===================================
 
 instance Functor Concurrent where
@@ -135,6 +172,20 @@ instance Monad Concurrent where
 
 -- ===================================
 -- Ex. 5
+{--
+  At any moment, the status of the computation is going to be modelled as a list
+  of "concurrently running" actions. We will use a scheduling technique called
+  round robin to interleave the processes. The concept is easy: take the first
+  process from the list, run its first part, then take the resulting continuation
+  and put that at the back of the list. Keep doing this until the list is empty.
+
+  We implement this idea in the function `roundRobin :: [Action] -> IO ()`.
+  An `Atom` monadically executes its argument and puts the resulting process at
+  the back of the process list. `Fork` creates two new processes and `Stop` discards
+  its process. Make sure you leverage the helper functions you defined before.
+
+  Implement the function `roundRobin`.
+--}
 -- ===================================
 
 roundRobin :: [Action] -> IO ()
