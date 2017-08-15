@@ -166,9 +166,13 @@ instance Applicative Concurrent where
   (<*>) = undefined
 
 instance Monad Concurrent where
-  (Concurrent f) >>= g = error "You have to implement >>="
   return = pure
+  (Concurrent f) >>= g = Concurrent $ \c -> f (\a -> case g a of (Concurrent b) -> b c)
 
+bind :: ((a -> Action) -> Action) -> (a -> ((b -> Action) -> Action)) -> ((b -> Action) -> Action)
+-- I had to peek in the end :-( The types are not leading me yet!
+-- To help myself "get it" I labelled variables in quasi-Hungarian notation
+bind aAA f = \contB -> aAA (\xA -> case f xA of bAA -> bAA contB)
 
 -- ===================================
 -- Ex. 5
