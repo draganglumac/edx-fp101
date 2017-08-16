@@ -193,7 +193,12 @@ bind aAA f = \contB -> aAA (\xA -> case f xA of bAA -> bAA contB)
 -- ===================================
 
 roundRobin :: [Action] -> IO ()
-roundRobin = error "You have to implement roundRobin"
+roundRobin [] = return ()
+roundRobin (x : xs) = case x of
+  Atom io -> io >>= \act -> roundRobin $ xs ++ [act]
+  Fork a b -> roundRobin $ xs ++ [a, b]
+  Stop -> roundRobin xs
+
 
 -- ===================================
 -- Tests
