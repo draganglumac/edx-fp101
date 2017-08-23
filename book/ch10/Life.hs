@@ -13,10 +13,10 @@ goto :: Pos -> IO ()
 goto (x, y) = putStr ("\ESC[" ++ show y ++ ";" ++ show x ++ "H")
 
 width :: Int
-width = 10
+width = 30
 
 height :: Int
-height = 10
+height = 30
 
 type Board = [Pos]
 
@@ -67,11 +67,8 @@ nextGen b = survivors b ++ births b
 life :: Board -> IO ()
 life b = do cls
             showCells b
-            wait 500000
+            wait 100000
             life (nextGen b)
 
 wait :: Int -> IO ()
 wait n = sequence_ [ return () | _ <- [1..n] ]
-
-main :: IO ()
-main = life glider
