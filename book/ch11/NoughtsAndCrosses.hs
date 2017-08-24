@@ -22,7 +22,7 @@ next X = O
 empty :: Grid
 empty = replicate size (replicate size B)
 
-full :: Grid
+full :: Grid -> Bool
 full = all (/= B) . concat
 
 turn :: Grid -> Player
@@ -47,6 +47,13 @@ won :: Grid -> Bool
 won g = wins O g || wins X g
 
 -- display functions
+cls :: IO ()
+cls = putStr "\ESC[2J"
+
+type Pos = (Int, Int)
+
+goto :: Pos -> IO ()
+goto (x, y) = putStr ("\ESC[" ++ show y ++ ";" ++ show x ++ "H")
 
 putGrid :: Grid -> IO ()
 putGrid = putStrLn
@@ -82,7 +89,7 @@ valid g i =  0 <= i
           && concat g !! i == B
 
 move :: Grid -> Int -> Player -> [Grid]
-move g i p = if valid g
+move g i p = if valid g i
              then [chop size (xs ++ [p] ++ ys)]
              else []
              where (xs, B:ys) = splitAt i (concat g)
@@ -102,7 +109,7 @@ getNat  prompt = do putStr prompt
 
 -- game stuff - human vs. human
 noughtsAndCrosses :: IO ()
-noughtsAndCrosses = run emtpy O
+noughtsAndCrosses = run empty O
 
 run :: Grid -> Player -> IO ()
 run g p = do cls
@@ -117,13 +124,13 @@ run' g p | wins O g = putStrLn "Player O wins!\n"
          | otherwise = do i <- getNat (prompt p)
                           case move g i p of
                             [] -> do putStrLn "ERROR: Invalid move!"
-                                      run' g p
+                                     run' g p
                             [g'] -> run g' (next p)
 
 prompt :: Player -> String
 prompt p = "Player " ++ show p ++ ", enter your move: "
 
--- game stuff - human vs. computer
+-- -- game stuff - human vs. computer
 data Tree a = Node a [Tree a]
               deriving Show
 
@@ -136,7 +143,7 @@ moves g p
   | full g = []
   | otherwise = concat [move g i p | i <- [0..((size^2) - 1)]]
 
--- prune the tree to a certain depth to save time and space
+-- -- prune the tree to a certain depth to save time and space
 prune :: Int -> Tree a -> Tree a
 prune 0 (Node x _) = Node x []
 prune n (Node x ts) = Node x [prune (n-1) t | t <- ts]
@@ -156,7 +163,7 @@ minimax (Node g [])
   | otherwise = Node (g, B) []
 minimax (Node g ts)
   | turn g == O = Node (g, minimum ps) ts'
-  | turn g == X = Node (g, maxiumum ps) ts'
+  | turn g == X = Node (g, maximum ps) ts'
                   where
                     ts' = map minimax ts
                     ps = [p | Node (_, p) _ <- ts']
